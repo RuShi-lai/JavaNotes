@@ -4,7 +4,7 @@
 
 - MyBatis 是一款优秀的持久层框架，它支持自定义 SQL、存储过程以及高级映射。MyBatis 免除了几乎所有的 JDBC 代码以及设置参数和获取结果集的工作。
 
-##### 	持久化
+  ##### 持久化
 
 ​ 持久化是将程序数据在持久状态和瞬时状态间转换的机制。通俗的讲，就是瞬时数据（比如内存中的数据，是不能永久保存的）持久化为持久数据（比如持久化至数据库中，能够长久保存）。
 
@@ -13,14 +13,14 @@
 3. 那可靠的存储地方是哪里？硬盘、U盘、光盘等。
 4. 我们的程序在运行时说的持久化通常就是指将内存的数据存在硬盘。
 
-##### 	持久层
+   ##### 持久层
 
 - 业务是需要操作数据的
 - 数据是在磁盘上的
 - 具体业务调用具体的数据库操作，耦合度太高，复用性太差
 - 将操作数据库的代码统一抽离出来，自然就形成了介于业务层和数据库中间的独立的层
 
-##### 	ORM
+  ##### ORM
 
 ORM，即Object-Relational Mapping（对象关系映射），它的作用是在关系型数据库和业务实体对象之间作一个映射，这样，我们在具体的操作业务对象的时候，就不需要再去和复杂的SQL语句打交道，只需简单的操作对象的属性和方法。
 
@@ -72,7 +72,7 @@ xmlns:xsi 定义了一个命名空间前缀 xsi 对应的唯一字符串 http://
 - @Data：作用于类上，是以下注解的集合：@ToString @EqualsAndHashCode @Getter @Setter @RequiredArgsConstructor
 - @Log：作用于类上，生成日志变量。针对不同的日志实现产品，有不同的注解。
 
-##### 	日志配置
+  ##### 日志配置
 
 mybatis-config.xml配置  里面的setting标签内设置
 
@@ -261,7 +261,9 @@ List<User> getUsersByParams(Map<String,String> map);
 
 ##### 	架构讲解
 
-![](https://www.ydlclass.com/doc21xnv/assets/image-20211104152708780.70319dea.png)
+![](https://www.ydlclass.com/doc21xnv/assets/image-20211104152708780-788d171d.png)
+
+
 
 **API接口层**：提供给外部使用的接口API，开发人员通过这些本地API来操纵数据库。接口层一接收到调用请求就会调用数据处理层来完成具体的数据处理。
 
@@ -282,7 +284,7 @@ List<User> getUsersByParams(Map<String,String> map);
 9. **SqlSource：**负责根据用户传递的parameterObject，动态地生成SQL语句，将信息封装到BoundSql对象中，并返回
 10. **BoundSql：**表示动态生成的SQL语句以及相应的参数信息
 
-![](https://www.ydlclass.com/doc21xnv/assets/63651-20180924164811172-1839433605.fe1e078c.jpg)
+![]()
 
 ​ xml的解析过程就是将xml文件转化为Configuration对象，它在启动的时候执行，也就意味着修改配置文件就要重启
 
@@ -570,7 +572,7 @@ public int insert(@Param("user")User user);
 - 如果缓存中有数据，就不用从数据库获取，大大提高系统性能。
 - MyBatis提供一级缓存和二级缓存
 
-##### 	一级缓存
+  ##### 一级缓存
 
 一级缓存时sqlsession级别的缓存
 
@@ -633,8 +635,8 @@ eviction：回收策略（缓存满的淘汰机制）
 操作过程
 
 - ​	sqlsession1查询用户id为1的信息，查询到之后，会将查询数据存储到二级缓存中。
-- ​	如果sqlsession3去执行相同mapper下sql，执行commit提交，会清空该mapper下的二级缓存区域的数据
-- ​	sqlsession2查询用户id为1的信息， 去缓存找是否存在缓存，如果存在直接从缓存中取数据
+  - ​如果sqlsession3去执行相同mapper下sql，执行commit提交，会清空该mapper下的二级缓存区域的数据
+  - ​sqlsession2查询用户id为1的信息， 去缓存找是否存在缓存，如果存在直接从缓存中取数据
 
 禁用二级缓存
 

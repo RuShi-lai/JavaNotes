@@ -10,7 +10,7 @@ SpringBoot提供了一种快速使用Spring的方式，基于**约定优于配�
 
 2. 起步依赖本质上是一个Maven项目对象模型（Project Object Model，POM），定义了对其他库的**传递依赖**，这些东西加在一起即支持某项功能。 **依赖太多** **版本冲突**。简单的说，起步依赖就是将具备某种功能的坐标打包到一起，并提供一些默认的功能。
 
-##### 	起步依赖分析
+   起步依赖分析
 
 - 在spring-boot-starter-parent中定义了各种技术的版本信息，组合了一套最优搭配的技术版本。
 - 在各种starter中，定义了完成该功能需要的坐标合集，其中大部分版本信息来自于父工程。
@@ -162,11 +162,6 @@ spring:
             <artifactId>mysql-connector-java</artifactId>
             <!--<scope>runtime</scope>-->
         </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 ```
 
@@ -182,14 +177,10 @@ spring:
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-redis</artifactId>
         </dependency>
-
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-        </dependency>
     </dependencies>
 ```
+
+
 
 ```java
 @SpringBootTest
@@ -341,7 +332,7 @@ MySpringApplicationRunListener的使用要添加**构造器**
 
 3. 获取初始化类、监听器类
 
-   ![](https://www.ydlclass.com/doc21xnv/assets/1571369439416.7b4c1bdb.png)
+   ![](https://www.ydlclass.com/doc21xnv/assets/1571369439416-7b4c1bdb.png)
 
 运行
 
@@ -355,6 +346,10 @@ MySpringApplicationRunListener的使用要添加**构造器**
 
 5. 创建context
 
-   ![](https://www.ydlclass.com/doc21xnv/assets/1571373793325.e72ac485.png)
+   ![](https://www.ydlclass.com/doc21xnv/assets/1571373793325-e72ac485.png)
+
+   ​
+
+   ​
 
    ​
