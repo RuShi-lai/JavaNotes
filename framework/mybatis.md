@@ -284,9 +284,454 @@ List<User> getUsersByParams(Map<String,String> map);
 9. **SqlSource：**负责根据用户传递的parameterObject，动态地生成SQL语句，将信息封装到BoundSql对象中，并返回
 10. **BoundSql：**表示动态生成的SQL语句以及相应的参数信息
 
-![]()
+![](https://www.ydlclass.com/doc21xnv/assets/63651-20180924164811172-1839433605-c0404266.png)
 
-​ xml的解析过程就是将xml文件转化为Configuration对象，它在启动的时候执行，也就意味着修改配置文件就要重启
+##### 源码解读
+
+1：构建session工厂
+
+```java
+// 1、创建一个SqlSessionFactory的 建造者 ，用于创建SqlSessionFactory
+// SqlSessionFactoryBuilder中有大量的重载的build方法，可以根据不同的入参，进行构建
+// 极大的提高了灵活性，此处使用【创建者设计模式】
+SqlSessionFactoryBuilder builder = new SqlSessionFactoryBuilder(); 
+// 使用builder构建一个sqlSessionFactory，此处我们基于一个xml配置文件
+// 此过程会进行xml文件的解析，过程相对比较复杂
+SqlSessionFactory sqlSessionFactory = builder.build(Thread.currentThread().
+                    getContextClassLoader(). getResourceAsStream("mybatis-config.xml"));
+```
+
+​ 源码部分：这里有众多的重载build方法，我们调用的build方法，会是如下大流程
+
+```java
+public SqlSessionFactory build(InputStream inputStream) {
+    return build(inputStream, null, null);
+}
+
+public SqlSessionFactory build(InputStream inputStream, String environment, Properties properties) {
+    try {
+        XMLConfigBuilder parser = new XMLConfigBuilder(inputStream, environment, properties);
+        return build(parser.parse());
+    } catch (Exception e) {
+    ....
+}//核心的代码又回归到了build(parser.parse())这个构造器。
+
+ public SqlSessionFactory build(Configuration config) {
+    return new DefaultSqlSessionFactory(config);
+}//本质上，无论你做了多少工作，你使用xml也好，不使用xml也好，最终都是需要一个Configuration实例，这里保存了所有的配置项。
+ 
+ //独立去使用Configuration类构造实例，不使用xml。
+ Configuration configuration = new Configuration();
+// 创建一个数据源
+PooledDataSource pooledDataSource = new PooledDataSource();
+pooledDataSource.setDriver("com.mysql.cj.jdbc.Driver");
+pooledDataSource.setUrl("jdbc:mysql://127.0.0.1:3306/ydlclass?characterEncoding=utf8&amp;serverTimezone=Asia/Shanghai");
+pooledDataSource.setUsername("root");
+pooledDataSource.setPassword("root");
+Environment environment = new Environment("development",new JdbcTransactionFactory(),new PooledDataSource());
+configuration.setEnvironment(environment);
+
+//等同于
+  <configuration>
+    <environments default="development">
+        <environment id="development">
+            <transactionManager type="JDBC"/>
+            <dataSource type="POOLED">
+                <property name="driver" value="com.mysql.cj.jdbc.Driver"/>
+                <property name="url" value="jdbc:mysql://127.0.0.1:3306/ydlclass?characterEncoding=utf8&amp;serverTimezone=Asia/Shanghai"/>
+                <property name="username" value="root"/>
+                <property name="password" value="root"/>
+            </dataSource>
+        </environment>
+    </environments>
+</configuration>
+//xml的解析过程就是将xml文件转化为Configuration对象，它在启动的时候执行，也就意味着修改配置文件就
+//要重启。  
+```
+
+2：配置文件的解析
+
+parser.parse()这个方法了，这就是在解析xml配置文件。
+
+```java
+XMLConfigBuilder parser = new XMLConfigBuilder(inputStream, environment, properties);
+//这一步就是构造一个解析器，根据我们的入参构建一个文档解析器。使用了sax进行xml的解析
+
+//重点放在parse()方法
+public Configuration parse() {
+    ...省略不重要的代码
+    //此处就是解析的核心代码
+    parseConfiguration(parser.evalNode("/configuration"));
+    return configuration;
+}
+
+//进入这个方法 ->  parseConfiguration(parser.evalNode("/configuration"));
+private void parseConfiguration(XNode root) {
+    try {
+        // 处理properties标签
+        propertiesElement(root.evalNode("properties"));
+        Properties settings = settingsAsProperties(root.evalNode("settings"));
+        loadCustomVfs(settings);
+        loadCustomLogImpl(settings);
+		// 处理别名的标签
+        typeAliasesElement(root.evalNode("typeAliases"));
+        pluginElement(root.evalNode("plugins"));
+        objectFactoryElement(root.evalNode("objectFactory"));
+        objectWrapperFactoryElement(root.evalNode("objectWrapperFactory"));
+        reflectorFactoryElement(root.evalNode("reflectorFactory"));
+        settingsElement(settings);
+        // read it after objectFactory and objectWrapperFactory issue #631
+        // 处理environments标签
+        environmentsElement(root.evalNode("environments"));
+        databaseIdProviderElement(root.evalNode("databaseIdProvider"));
+        typeHandlerElement(root.evalNode("typeHandlers"));
+        // 处理mappers标签
+        mapperElement(root.evalNode("mappers"));
+    } catch (Exception e) {
+        throw new BuilderException("Error parsing SQL Mapper Configuration. Cause: " + e, e);
+    }
+}
+
+```
+
+解析标签的顺序
+
+```xml
+configuration>
+    <properties>
+        <property name="username" value="root"/>
+    </properties>
+
+    <settings>
+        <setting name="" value=""/>
+    </settings>
+    <typeAliases>
+        <typeAlias type="com.ydlclass.User" alias="user"/>
+    </typeAliases>
+
+    <environments default="development">
+        <environment id="development">
+            <transactionManager type="JDBC"/>
+            <dataSource type="POOLED">
+                <property name="driver" value="com.mysql.cj.jdbc.Driver"/>
+                <property name="url" value="jdbc:mysql://127.0.0.1:3306/ydlclass?characterEncoding=utf8&amp;serverTimezone=Asia/Shanghai"/>
+                <property name="username" value="root"/>
+                <property name="password" value="root"/>
+            </dataSource>
+        </environment>
+    </environments>
+    <mappers>
+        <mapper resource="userMapper.xml"/>
+    </mappers>
+</configuration>
+```
+
+3：mapper文件的解析过程
+
+以`mappers`标签为例继续深入探索：
+
+```java
+private void mapperElement(XNode parent) throws Exception {
+if (parent != null) {
+    // 循环遍历他的孩子节点
+    for (XNode child : parent.getChildren()) {
+        if ("package".equals(child.getName())) {
+            // <package name="com.ydlclass"/>
+            String mapperPackage = child.getStringAttribute("name");
+            // 直接将包名加入配置项
+            configuration.addMappers(mapperPackage);
+        } else {
+     
+            String resource = child.getStringAttribute("resource");
+            String url = child.getStringAttribute("url");
+            String mapperClass = child.getStringAttribute("class");
+            // 如果是resource属性,就通过resource获取资源并解析<mapper resource="userMapper.xml"/>
+            if (resource != null && url == null && mapperClass == null) {
+                ErrorContext.instance().resource(resource);
+                InputStream inputStream = Resources.getResourceAsStream(resource);
+                XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
+                mapperParser.parse();
+            // 如果是url属性,就通过url获取资源并解析 <mapper url="http://www.ydlclass.com/UserMapper.xml"/>
+            } else if (resource == null && url != null && mapperClass == null) {
+                ErrorContext.instance().resource(url);
+                InputStream inputStream = Resources.getUrlAsStream(url);
+                XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, url, configuration.getSqlFragments());
+                mapperParser.parse();
+            // 如果是url属性,就通过url获取资源并解析 <mapper class="com.ydlclass.UserMapper"/>
+            } else if (resource == null && url == null && mapperClass != null) {
+                Class<?> mapperInterface = Resources.classForName(mapperClass);
+                // 注册一个mapper
+                configuration.addMapper(mapperInterface);
+            } else {
+                throw new BuilderException("A mapper element may only specify a url, resource or class, but not more than one.");
+            }
+        }
+    }
+}
+}
+```
+获取mapper的配置信息，然后做下一步处理，其实无论是哪一种方式都是会在Configuration的mapperRegistry （mapper注册器中）中注册一个mapper。其实就是将mapper的class信息放在一个名为knownMappers的hashmap中，以便后续使用。当然他的值一个一个代理工厂，这玩意能帮我们获取一个mapper的代理对象
+
+```java
+private final Map<Class<?>, MapperProxyFactory<?>> knownMappers = new HashMap<>();
+```
+
+对于package属性，直接将包名注册到配置中，然后调用MapperRegistry的addMappers方法，通过扫描文件的方式将这个包底下的class添加进kownMappers中。
+
+```java
+public void addMappers(String packageName) {
+    mapperRegistry.addMappers(packageName);
+  }
+  
+public void addMappers(String packageName) {
+    addMappers(packageName, Object.class);
+} 
+
+public void addMappers(String packageName, Class<?> superType) {
+    ResolverUtil<Class<?>> resolverUtil = new ResolverUtil<>();
+    resolverUtil.find(new ResolverUtil.IsA(superType), packageName);
+    Set<Class<? extends Class<?>>> mapperSet = resolverUtil.getClasses();
+    for (Class<?> mapperClass : mapperSet) {
+        addMapper(mapperClass);
+    }
+}
+
+public <T> void addMapper(Class<T> type) {
+    mapperRegistry.addMapper(type);
+  }
+
+ public <T> void addMapper(Class<T> type) {
+    if (type.isInterface()) {
+      if (hasMapper(type)) {
+        throw new BindingException("Type " + type + " is already known to the MapperRegistry.");
+      }
+      boolean loadCompleted = false;
+      try {
+        knownMappers.put(type, new MapperProxyFactory<>(type));
+       ...省略不重要的代码
+    }
+  }
+
+public class MapperProxyFactory<T> {
+
+  private final Class<T> mapperInterface;
+  private final Map<Method, MapperMethodInvoker> methodCache = new ConcurrentHashMap<>();
+
+  public MapperProxyFactory(Class<T> mapperInterface) {
+    this.mapperInterface = mapperInterface;
+  }
+
+  public Class<T> getMapperInterface() {
+    return mapperInterface;
+  }
+
+  public Map<Method, MapperMethodInvoker> getMethodCache() {
+    return methodCache;
+  }
+
+  @SuppressWarnings("unchecked")
+  protected T newInstance(MapperProxy<T> mapperProxy) {
+    return (T) Proxy.newProxyInstance(mapperInterface.getClassLoader(), new Class[] { mapperInterface }, mapperProxy);
+  }
+
+  public T newInstance(SqlSession sqlSession) {
+    final MapperProxy<T> mapperProxy = new MapperProxy<>(sqlSession, mapperInterface, methodCache);
+    return newInstance(mapperProxy);
+  }
+
+}
+```
+
+对与class属性的处理
+
+这个属性我们配置的是一个class，<mapper class="com.ydlclass.UserMapper"/>，对一class将来肯定要从注解中解析信息，直接把他的class信息注册进去就好了。
+
+resource属性以及url属性的处理
+
+在resource属性以及url属性中没有看到configuration.addMapper()这个方法的影子，这两个属性都是以配置文件的方式加载，自然要解析mapper配置文件了。
+
+```java
+//XMLMapperBuilder这个类的parse()方法。很明显这个方法configurationElement是用来解析配置文件的。
+public void parse() {
+    if (!configuration.isResourceLoaded(resource)) {
+        configurationElement(parser.evalNode("/mapper"));
+        configuration.addLoadedResource(resource);
+        bindMapperForNamespace();
+    }
+
+    parsePendingResultMaps();
+    parsePendingCacheRefs();
+    parsePendingStatements();
+}
+
+//bindMapperForNamespace我们看到了注册mapper的代码：
+private void bindMapperForNamespace() {
+       ...其他代码省略
+            configuration.addLoadedResource("namespace:" + namespace);
+            configuration.addMapper(boundType);
+        }
+    }
+}
+```
+
+mapper具体解析
+
+```javascript
+//构建解析器
+XMLMapperBuilder mapperParser = new XMLMapperBuilder(inputStream, configuration, resource, configuration.getSqlFragments());
+
+//这个方法就是对每一个标签的解析：
+private void configurationElement(XNode context) {
+    try {
+        String namespace = context.getStringAttribute("namespace");
+        if (namespace == null || namespace.isEmpty()) {
+            throw new BuilderException("Mapper's namespace cannot be empty");
+        }
+        builderAssistant.setCurrentNamespace(namespace);
+        cacheRefElement(context.evalNode("cache-ref"));
+        cacheElement(context.evalNode("cache"));
+        parameterMapElement(context.evalNodes("/mapper/parameterMap"));
+        resultMapElements(context.evalNodes("/mapper/resultMap"));
+        sqlElement(context.evalNodes("/mapper/sql"));
+        buildStatementFromContext(context.evalNodes("select|insert|update|delete"));
+    } catch (Exception e) {
+        throw new BuilderException("Error parsing Mapper XML. The XML location is '" + resource + "'. Cause: " + e, e);
+    }
+}
+```
+
+4：通过sqlSession获取一个代理对象
+
+```java
+//通过sqlSessionFactory获取另一个session，此处使用【工厂设计模式】
+SqlSession sqlSession = sqlSessionFactory.openSession();
+
+// 通过sqlSession获取一个代理对象，此处使用【代理设计模式】
+UserMapper mapper = sqlSession.getMapper(UserMapper.class);
+
+//走到DefaultSqlSession，这是SqlSession的一个子类，从open方法中我们能看到默认创建的sqlSession是他的子类DefaultSqlSession
+private SqlSession openSessionFromDataSource(ExecutorType execType, TransactionIsolationLevel level, boolean autoCommit) {
+    ...省略不重要的代码
+    return new DefaultSqlSession(configuration, executor, autoCommit);
+}
+
+//实现类的getMapper中得知
+public <T> T getMapper(Class<T> type) {
+    return configuration.getMapper(type, this);
+}
+
+public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
+    return mapperRegistry.getMapper(type, sqlSession);
+  }//从注册器中获取mapper工厂，并创建代理对象：
+
+public <T> T getMapper(Class<T> type, SqlSession sqlSession) {
+    final MapperProxyFactory<T> mapperProxyFactory = (MapperProxyFactory<T>) knownMappers.get(type);
+    if (mapperProxyFactory == null) {
+        throw new BindingException("Type " + type + " is not known to the MapperRegistry.");
+    }
+    try {
+        // 创建代理对象：
+        return mapperProxyFactory.newInstance(sqlSession);
+    } catch (Exception e) {
+        throw new BindingException("Error getting mapper instance. Cause: " + e, e);
+    }
+}
+```
+
+MapperProxyFactory这个类
+
+```java
+public class MapperProxyFactory<T> {
+    private final Class<T> mapperInterface;
+    private final Map<Method, MapperMethodInvoker> methodCache = new ConcurrentHashMap<>();
+}
+
+//创建对象的时候创建了一个MapperProxy
+public T newInstance(SqlSession sqlSession) {
+    final MapperProxy<T> mapperProxy = new MapperProxy<>(sqlSession, mapperInterface, methodCache);
+    return newInstance(mapperProxy);
+}
+
+//MapperProxy就是我们的InvocationHandler，也是创建代理对象必须的，其中的核心方法是invoke，会在调用代理对象的方法时调用
+public class MapperProxy<T> implements InvocationHandler, Serializable {
+
+    private static final long serialVersionUID = -4724728412955527868L;
+    private static final int ALLOWED_MODES = MethodHandles.Lookup.PRIVATE | MethodHandles.Lookup.PROTECTED
+        | MethodHandles.Lookup.PACKAGE | MethodHandles.Lookup.PUBLIC;
+    private static final Constructor<Lookup> lookupConstructor;
+    private static final Method privateLookupInMethod;
+    private final SqlSession sqlSession;
+    private final Class<T> mapperInterface;
+    private final Map<Method, MapperMethodInvoker> methodCache;
+
+    public MapperProxy(SqlSession sqlSession, Class<T> mapperInterface, Map<Method, MapperMethodInvoker> methodCache) {
+        this.sqlSession = sqlSession;
+        this.mapperInterface = mapperInterface;
+        this.methodCache = methodCache;
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        try {
+            if (Object.class.equals(method.getDeclaringClass())) {
+                return method.invoke(this, args);
+            } else {
+                return cachedInvoker(method).invoke(proxy, method, args, sqlSession);
+            }
+        } catch (Throwable t) {
+            throw ExceptionUtil.unwrapThrowable(t);
+        }
+    }
+```
+
+5：方法调用
+
+执行代理的对象的方法时
+
+```java
+List<User> allUser = mapper.findAllUser(12);
+```
+
+invoke方法会被调用，这里会判断它调用的是继承自Object的方法还是实现的接口的方法，我们的重点放在：
+
+```java
+cachedInvoker(method).invoke(proxy, method, args, sqlSession);
+
+private MapperMethodInvoker cachedInvoker(Method method) throws Throwable {
+    try {
+      // 这里就知道了methodCache的左右了，方法存在缓存里避免频繁的创建
+      MapperMethodInvoker invoker = methodCache.get(method);
+      if (invoker != null) {
+        return invoker;
+      }
+
+        // 缓存没有就创建一个
+      return methodCache.computeIfAbsent(method, m -> {
+          // 这里是处理接口的默认方法
+        if (m.isDefault()) {
+          try {
+            if (privateLookupInMethod == null) {
+              return new DefaultMethodInvoker(getMethodHandleJava8(method));
+            } else {
+              return new DefaultMethodInvoker(getMethodHandleJava9(method));
+            }
+          } catch (IllegalAccessException | InstantiationException | InvocationTargetException
+              | NoSuchMethodException e) {
+            throw new RuntimeException(e);
+          }
+            // 核心代码在这里
+        } else {
+          return new PlainMethodInvoker(new MapperMethod(mapperInterface, method, sqlSession.getConfiguration()));
+        }
+      });
+    } catch (RuntimeException re) {
+      Throwable cause = re.getCause();
+      throw cause == null ? re : cause;
+    }
+  }
+```
+
+xml的解析过程就是将xml文件转化为Configuration对象，它在启动的时候执行，也就意味着修改配置文件就要重启
 
 ##### 别名系统
 
