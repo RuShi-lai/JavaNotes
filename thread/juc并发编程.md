@@ -220,7 +220,13 @@ readWriteLock.readLock().unlock();
 
 ##### 线程池七个参数
 
-new ThreadPoolExecutor(int corePoolSize,int  maximumPoolSize, long keepAliveTime TimeUnit unit, BlockingQueue<Runnable> workQueuqe, ThreadFactory threadFactory, RejectExecutionHandle handle)
+new ThreadPoolExecutor(int corePoolSize,
+                       int  maximumPoolSize, 
+                       long keepAliveTime，
+                       TimeUnit unit, 
+                       BlockingQueue<Runnable> workQueuqe,
+                       ThreadFactory threadFactory,
+                       RejectExecutionHandle handle)
 
 常驻线程数量、最大线程数、线程存活时间、时间单位、阻塞队列、线程工厂、拒绝策略
 
