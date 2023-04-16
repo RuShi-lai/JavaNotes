@@ -46,7 +46,7 @@ jvm同步基于进入和推出，使用管程对象
 ##### Lock和synchronized区别
 
 - Lock是一个接口，syschronized是关键字
-- sychronized发送异常，会自动释放锁，不会死锁，Lock没用unlock会造成死锁，建议放finally代码块中
+- sychronized发生异常，会自动释放锁，不会死锁，Lock没用unlock会造成死锁，建议放finally代码块中
 - Lock可以让等待锁的线程响应中断，而synchronized不行
 - 通过Lock可以知道有没有成果获取锁，synchronized不行
 - 竞争资源非常激烈时，Lock读操作远优于synchronized
