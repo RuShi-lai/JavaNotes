@@ -65,7 +65,7 @@ jvm同步基于进入和推出，使用管程对象
 
 给每个线程定义一个标志位
 
-![](file:///C:\Users\如是\AppData\Roaming\Tencent\Users\1973661189\QQ\WinTemp\RichOle\T1L8`NJVB@}{ZJQ7MZ6T16I.png)
+![](https://github.com/jianbin-lai/JavaNotes/blob/master/image/T1L8%60NJVB%40%7D%7BZJQ7MZ6T16I.png)
 
 Condition 接口描述了可能会与锁有关联的条件变量在用法上与使用 Object.wait 访问的隐式监视器类似，但提供了更强大的功能。需要特别指出的是，单个 Lock 可能与多个 Condition 对象关联。
 
@@ -177,17 +177,17 @@ readWriteLock.readLock().lock();
 readWriteLock.readLock().unlock();
 ```
 
-![img](file:///C:\Users\如是\AppData\Roaming\Tencent\Users\1973661189\QQ\WinTemp\RichOle\Y4[X]L1%LOH9WK35LZ`7J0B.png)
+![img](https://github.com/jianbin-lai/JavaNotes/blob/master/image/Y4%5BX%5DL1%25LOH9WK35LZ%607J0B.png)
 
 锁降级：将写入锁降级为读锁（读锁不能升级为写锁）
 
-![img](file:///C:\Users\如是\AppData\Roaming\Tencent\Users\1973661189\QQ\WinTemp\RichOle\3G_SDM~AA~`WN8}X0G5JKS1.png)
+![img](https://github.com/jianbin-lai/JavaNotes/blob/master/image/3G_SDM-AA-%60WN8%7DX0G5JKS1.png)
 
 #### 阻塞队列
 
 一个共享队列，从队列一端输入，一端输出
 
-![img](file:///C:\Users\如是\AppData\Roaming\Tencent\Users\1973661189\QQ\WinTemp\RichOle\}%SG}SDHVGTWK7OO9@X4WQC.png)
+![img](https://github.com/jianbin-lai/JavaNotes/blob/master/image/%7D%25SG%7DSDHVGTWK7OO9%40X4WQC.png)
 
 队空获取元素被阻塞，队满放元素被阻塞。
 
@@ -200,7 +200,7 @@ readWriteLock.readLock().unlock();
 - LinkedTransferQueue：由链表组成的无界阻塞队列
 - LinkedBlockingDeque：由链表组成的双向阻塞队列
 
-![img](file:///C:\Users\如是\AppData\Roaming\Tencent\Users\1973661189\QQ\WinTemp\RichOle\UF1DN$$Y9XTPC3FZ7F@T]7T.png)
+![img](https://github.com/jianbin-lai/JavaNotes/blob/master/image/UF1DN%24%24Y9XTPC3FZ7F%40T%5D7T.png)
 
 #### 线程池
 
@@ -228,7 +228,7 @@ new ThreadPoolExecutor(int corePoolSize,int  maximumPoolSize, long keepAliveTime
 
 当执行excute()才创建线程
 
-![img](file:///C:\Users\如是\AppData\Roaming\Tencent\Users\1973661189\QQ\WinTemp\RichOle\`AYZI}O%@Q~T9KC{605T7I1.png)
+![img](https://github.com/jianbin-lai/JavaNotes/blob/master/image/%60AYZI%7DO%25%40Q-T9KC%7B605T7I1.png)
 
 ##### 拒绝策略
 
@@ -237,7 +237,7 @@ new ThreadPoolExecutor(int corePoolSize,int  maximumPoolSize, long keepAliveTime
 - DiscardOldestPolicy：抛弃队列中等待最久线程，然后把当前任务加入队列
 - DiscardPolicy：默默丢弃无法处理任务，不予处理也不抛出异常
 
-![img](file:///C:\Users\如是\AppData\Roaming\Tencent\Users\1973661189\QQ\WinTemp\RichOle\F13}U86{PCO3@8MN[ZP9P1K.png)
+![img](https://github.com/jianbin-lai/JavaNotes/blob/master/image/F13%7DU86%7BPCO3%408MN%5BZP9P1K.png)
 
 #### 分支合并框架
 
